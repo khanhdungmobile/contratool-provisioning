@@ -842,7 +842,7 @@ class ContraPro16:
         reference_frame = tk.Frame(frame, bg='#d7f0e5', bd=1, relief=tk.SOLID)
         reference_frame.pack(pady=10, padx=20)
 
-        ref_path = Path(r"C:\CONTRA15PRO\assets\1.png")
+        ref_path = Path(resource_path("provisioning_qr.png"))
         if ref_path.exists():
             try:
                 ref_image = Image.open(ref_path)
@@ -860,7 +860,7 @@ class ContraPro16:
         else:
             tk.Label(
                 reference_frame,
-                text="Không tìm thấy hình 1.png trong C:\\CONTRA15PRO\\assets",
+                text="Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo.",
                 font=('Segoe UI', 11),
                 fg=self.colors['warning'],
                 bg='#d7f0e5'
@@ -911,7 +911,7 @@ class ContraPro16:
         qr_container = tk.Frame(frame, bg='#d7f0e5', bd=1, relief=tk.SOLID)
         qr_container.pack(pady=10, padx=20)
 
-        qr_path = Path(resource_path("release_qr.png"))
+        qr_path = Path(resource_path("provisioning_qr.png"))
         if qr_path.exists():
             try:
                 qr_image = Image.open(qr_path)
@@ -921,7 +921,7 @@ class ContraPro16:
             except Exception as exc:
                 tk.Label(
                     qr_container,
-                    text=f"Không thể tải release_qr.png: {exc}",
+                    text=f"Không thể tải provisioning_qr.png: {exc}",
                     font=('Segoe UI', 11),
                     fg=self.colors['error'],
                     bg='#d7f0e5'
@@ -929,7 +929,7 @@ class ContraPro16:
         else:
             tk.Label(
                 qr_container,
-                text="Không tìm thấy release_qr.png. Hãy chạy samsung_tool.py --release-url ... để tạo.",
+                text="Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo.",
                 font=('Segoe UI', 11),
                 fg=self.colors['warning'],
                 bg='#d7f0e5'
@@ -937,7 +937,7 @@ class ContraPro16:
 
         open_btn = tk.Button(
             frame,
-            text="🌐 MỞ TRANG CONTRATOOL",
+            text="📱 MỞ QR CONTRATOOL",
             font=('Segoe UI', 13, 'bold'),
             fg='#ffffff',
             bg=self.colors['accent'],
@@ -947,7 +947,7 @@ class ContraPro16:
             padx=30,
             pady=14,
             cursor='hand2',
-            command=lambda: self.open_url("https://github.com/khanhdungmobile/contratool-provisioning/releases")
+            command=self.open_provisioning_qr
         )
         open_btn.pack(pady=25)
         self.register_protected_button(open_btn)
@@ -1653,6 +1653,23 @@ class ContraPro16:
         except Exception as exc:
             messagebox.showerror("Browser Error", f"Không thể mở trình duyệt:\n{exc}")
 
+    def open_provisioning_qr(self):
+        """Hiển thị popup QR CONTRATOOL"""
+        if not self.ensure_active():
+            return
+        qr_path = Path(resource_path("provisioning_qr.png"))
+        if not qr_path.exists():
+            messagebox.showerror(
+                "Error",
+                "Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo."
+            )
+            return
+        try:
+            img = Image.open(qr_path)
+            self.create_qr_popup(img)
+        except Exception as exc:
+            messagebox.showerror("Error", f"Không thể mở QR: {exc}")
+
     def disable_action_buttons(self):
         """Disable tất cả nút thao tác khi chưa active"""
         for btn in list(self.protected_buttons):
@@ -2185,9 +2202,12 @@ class ContraPro16:
         if not self.ensure_active():
             return
         try:
-            img_path = Path(r"C:\CONTRA15PRO\assets\1.png")
+            img_path = Path(resource_path("provisioning_qr.png"))
             if not img_path.exists():
-                messagebox.showerror("Error", f"Không tìm thấy hình QR tại:\n{img_path}")
+                messagebox.showerror(
+                    "Error",
+                    "Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo."
+                )
                 return
 
             self.status_var.set("Opening QR image...")
