@@ -842,7 +842,7 @@ class ContraPro16:
         reference_frame = tk.Frame(frame, bg='#d7f0e5', bd=1, relief=tk.SOLID)
         reference_frame.pack(pady=10, padx=20)
 
-        ref_path = Path(resource_path("provisioning_qr.png"))
+        ref_path = Path(resource_path("qr_default.png"))
         if ref_path.exists():
             try:
                 ref_image = Image.open(ref_path)
@@ -860,7 +860,7 @@ class ContraPro16:
         else:
             tk.Label(
                 reference_frame,
-                text="Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo.",
+                text="Không tìm thấy qr_default.png. Hãy kiểm tra lại tệp QR gốc.",
                 font=('Segoe UI', 11),
                 fg=self.colors['warning'],
                 bg='#d7f0e5'
@@ -2202,11 +2202,11 @@ class ContraPro16:
         if not self.ensure_active():
             return
         try:
-            img_path = Path(resource_path("provisioning_qr.png"))
+            img_path = Path(resource_path("qr_default.png"))
             if not img_path.exists():
                 messagebox.showerror(
                     "Error",
-                    "Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo."
+                    "Không tìm thấy qr_default.png. Hãy kiểm tra lại tệp QR gốc."
                 )
                 return
 
