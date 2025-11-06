@@ -186,6 +186,7 @@ import uuid
 import platform
 import importlib
 import importlib.util
+import webbrowser
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import subprocess
@@ -738,6 +739,7 @@ class ContraPro16:
         
         tabs = [
             ("📱 Bật ADB", "adb", self.colors['accent']),
+            ("📱 Bật ADB 2", "adb2", self.colors['accent']),
             ("🔥 KG Removal", "kg", self.colors['success']),
             ("🔧 Change CSC", "csc", self.colors['warning'])
         ]
@@ -767,6 +769,7 @@ class ContraPro16:
         
         # Create tabs
         self.adb_frame = self.create_adb_tab()
+        self.adb2_frame = self.create_adb2_tab()
         self.kg_frame = self.create_kg_tab()
         self.csc_frame = self.create_csc_tab()
         
@@ -783,12 +786,14 @@ class ContraPro16:
             tab_id = "adb"
 
         # Hide all tabs
-        for frame in [self.adb_frame, self.kg_frame, self.csc_frame]:
+        for frame in [self.adb_frame, self.adb2_frame, self.kg_frame, self.csc_frame]:
             frame.pack_forget()
         
         # Show selected tab and highlight button
         if tab_id == "adb":
             self.adb_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        elif tab_id == "adb2":
+            self.adb2_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         elif tab_id == "kg":
             self.kg_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         elif tab_id == "csc":
@@ -880,6 +885,72 @@ class ContraPro16:
         )
         generate_btn.pack()
         self.register_protected_button(generate_btn)
+
+        return frame
+
+    def create_adb2_tab(self):
+        """Create second ADB tab showing CONTRATOOL QR"""
+        frame = tk.Frame(self.tab_content, bg=self.colors['panel'])
+
+        tk.Label(
+            frame,
+            text="📱 CONTRATOOL QR",
+            font=('Segoe UI', 24, 'bold'),
+            fg=self.colors['text'],
+            bg=self.colors['panel']
+        ).pack(pady=20)
+
+        tk.Label(
+            frame,
+            text="Quét QR bên dưới để mở trang CONTRATOOL hoặc phát hành mới nhất.",
+            font=('Segoe UI', 12),
+            fg=self.colors['text_dim'],
+            bg=self.colors['panel']
+        ).pack(pady=(0, 20))
+
+        qr_container = tk.Frame(frame, bg='#d7f0e5', bd=1, relief=tk.SOLID)
+        qr_container.pack(pady=10, padx=20)
+
+        qr_path = Path(resource_path("release_qr.png"))
+        if qr_path.exists():
+            try:
+                qr_image = Image.open(qr_path)
+                qr_image.thumbnail((520, 620), Image.Resampling.LANCZOS)
+                self.adb2_image = ImageTk.PhotoImage(qr_image)
+                tk.Label(qr_container, image=self.adb2_image, bg='#d7f0e5').pack(padx=6, pady=6)
+            except Exception as exc:
+                tk.Label(
+                    qr_container,
+                    text=f"Không thể tải release_qr.png: {exc}",
+                    font=('Segoe UI', 11),
+                    fg=self.colors['error'],
+                    bg='#d7f0e5'
+                ).pack(padx=20, pady=40)
+        else:
+            tk.Label(
+                qr_container,
+                text="Không tìm thấy release_qr.png. Hãy chạy samsung_tool.py --release-url ... để tạo.",
+                font=('Segoe UI', 11),
+                fg=self.colors['warning'],
+                bg='#d7f0e5'
+            ).pack(padx=20, pady=40)
+
+        open_btn = tk.Button(
+            frame,
+            text="🌐 MỞ TRANG CONTRATOOL",
+            font=('Segoe UI', 13, 'bold'),
+            fg='#ffffff',
+            bg=self.colors['accent'],
+            activebackground=self._lighten_color(self.colors['accent']),
+            activeforeground='#ffffff',
+            relief=tk.FLAT,
+            padx=30,
+            pady=14,
+            cursor='hand2',
+            command=lambda: self.open_url("https://github.com/khanhdungmobile/contratool-provisioning/releases")
+        )
+        open_btn.pack(pady=25)
+        self.register_protected_button(open_btn)
 
         return frame
 
@@ -1574,6 +1645,13 @@ class ContraPro16:
                 btn.config(state=tk.DISABLED)
             except Exception:
                 pass
+
+    def open_url(self, url):
+        """Mở URL bằng trình duyệt mặc định"""
+        try:
+            webbrowser.open(url, new=2)
+        except Exception as exc:
+            messagebox.showerror("Browser Error", f"Không thể mở trình duyệt:\n{exc}")
 
     def disable_action_buttons(self):
         """Disable tất cả nút thao tác khi chưa active"""
