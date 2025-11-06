@@ -739,7 +739,6 @@ class ContraPro16:
         
         tabs = [
             ("📱 Bật ADB", "adb", self.colors['accent']),
-            ("📱 Bật ADB 2", "adb2", self.colors['accent']),
             ("🔥 KG Removal", "kg", self.colors['success']),
             ("🔧 Change CSC", "csc", self.colors['warning'])
         ]
@@ -769,7 +768,6 @@ class ContraPro16:
         
         # Create tabs
         self.adb_frame = self.create_adb_tab()
-        self.adb2_frame = self.create_adb2_tab()
         self.kg_frame = self.create_kg_tab()
         self.csc_frame = self.create_csc_tab()
         
@@ -786,14 +784,12 @@ class ContraPro16:
             tab_id = "adb"
 
         # Hide all tabs
-        for frame in [self.adb_frame, self.adb2_frame, self.kg_frame, self.csc_frame]:
+        for frame in [self.adb_frame, self.kg_frame, self.csc_frame]:
             frame.pack_forget()
         
         # Show selected tab and highlight button
         if tab_id == "adb":
             self.adb_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        elif tab_id == "adb2":
-            self.adb2_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         elif tab_id == "kg":
             self.kg_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         elif tab_id == "csc":
@@ -885,72 +881,6 @@ class ContraPro16:
         )
         generate_btn.pack()
         self.register_protected_button(generate_btn)
-
-        return frame
-
-    def create_adb2_tab(self):
-        """Create second ADB tab showing CONTRATOOL QR"""
-        frame = tk.Frame(self.tab_content, bg=self.colors['panel'])
-
-        tk.Label(
-            frame,
-            text="📱 CONTRATOOL QR",
-            font=('Segoe UI', 24, 'bold'),
-            fg=self.colors['text'],
-            bg=self.colors['panel']
-        ).pack(pady=20)
-
-        tk.Label(
-            frame,
-            text="Quét QR bên dưới để mở trang CONTRATOOL hoặc phát hành mới nhất.",
-            font=('Segoe UI', 12),
-            fg=self.colors['text_dim'],
-            bg=self.colors['panel']
-        ).pack(pady=(0, 20))
-
-        qr_container = tk.Frame(frame, bg='#d7f0e5', bd=1, relief=tk.SOLID)
-        qr_container.pack(pady=10, padx=20)
-
-        qr_path = Path(resource_path("provisioning_qr.png"))
-        if qr_path.exists():
-            try:
-                qr_image = Image.open(qr_path)
-                qr_image.thumbnail((520, 620), Image.Resampling.LANCZOS)
-                self.adb2_image = ImageTk.PhotoImage(qr_image)
-                tk.Label(qr_container, image=self.adb2_image, bg='#d7f0e5').pack(padx=6, pady=6)
-            except Exception as exc:
-                tk.Label(
-                    qr_container,
-                    text=f"Không thể tải provisioning_qr.png: {exc}",
-                    font=('Segoe UI', 11),
-                    fg=self.colors['error'],
-                    bg='#d7f0e5'
-                ).pack(padx=20, pady=40)
-        else:
-            tk.Label(
-                qr_container,
-                text="Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo.",
-                font=('Segoe UI', 11),
-                fg=self.colors['warning'],
-                bg='#d7f0e5'
-            ).pack(padx=20, pady=40)
-
-        open_btn = tk.Button(
-            frame,
-            text="📱 MỞ QR CONTRATOOL",
-            font=('Segoe UI', 13, 'bold'),
-            fg='#ffffff',
-            bg=self.colors['accent'],
-            activebackground=self._lighten_color(self.colors['accent']),
-            activeforeground='#ffffff',
-            relief=tk.FLAT,
-            padx=30,
-            pady=14,
-            cursor='hand2',
-            command=self.open_provisioning_qr
-        )
-        open_btn.pack(pady=25)
-        self.register_protected_button(open_btn)
 
         return frame
 
@@ -1491,6 +1421,13 @@ class ContraPro16:
 
         self.create_button(
             btn_frame,
+            "⚡ Android 14/15 KG Fix",
+            self.kg_removal_android14,
+            self.colors['warning']
+        ).pack(fill=tk.X, pady=10)
+
+        self.create_button(
+            btn_frame,
             "🚀 Community KG Script",
             self.run_community_script,
             self.colors['accent']
@@ -1652,23 +1589,6 @@ class ContraPro16:
             webbrowser.open(url, new=2)
         except Exception as exc:
             messagebox.showerror("Browser Error", f"Không thể mở trình duyệt:\n{exc}")
-
-    def open_provisioning_qr(self):
-        """Hiển thị popup QR CONTRATOOL"""
-        if not self.ensure_active():
-            return
-        qr_path = Path(resource_path("provisioning_qr.png"))
-        if not qr_path.exists():
-            messagebox.showerror(
-                "Error",
-                "Không tìm thấy provisioning_qr.png. Hãy chạy samsung_tool.py --download-url ... để tạo."
-            )
-            return
-        try:
-            img = Image.open(qr_path)
-            self.create_qr_popup(img)
-        except Exception as exc:
-            messagebox.showerror("Error", f"Không thể mở QR: {exc}")
 
     def disable_action_buttons(self):
         """Disable tất cả nút thao tác khi chưa active"""
@@ -1977,13 +1897,32 @@ class ContraPro16:
         thread = threading.Thread(target=self._kg_removal_thread, daemon=True)
         thread.start()
     
+    def kg_removal_android14(self):
+        """KG Removal optimized for Android 14/15"""
+        if not self.ensure_active():
+            return
+        if not self._check_device():
+            messagebox.showerror("Error", "No ADB device connected!\n\nPlease enable ADB first using QR Code.")
+            return
+
+        thread = threading.Thread(target=self._kg_removal_thread_android14, daemon=True)
+        thread.start()
+
     def _kg_removal_thread(self):
-        """KG removal thread - Simple output"""
+        """KG removal thread - FIXED FOR ANDROID 14 & 15"""
         try:
             self.run_on_ui(partial(self.log_text.config, state=tk.NORMAL))
             self.run_on_ui(partial(self.log_text.delete, 1.0, tk.END))
-
             self.run_on_ui(partial(self.append_text, self.log_text, "Operation: KG Removal All [ ADB ]\n\n"))
+
+            android_ver, _ = self._run_adb_cmd("adb shell getprop ro.build.version.release")
+            android_ver = android_ver.strip() if android_ver else "Unknown"
+            is_a14 = "14" in android_ver
+            is_a15 = "15" in android_ver
+
+            self.run_on_ui(partial(self.append_text, self.log_text, f"Android Version: {android_ver}\n"))
+            self.run_on_ui(partial(self.append_text, self.log_text, f"Device Type: {'Android 14' if is_a14 else 'Android 15+'}\n\n"))
+
             before_kg, before_flash = self.get_kg_status()
             self.run_on_ui(partial(
                 self.append_text,
@@ -1991,56 +1930,69 @@ class ContraPro16:
                 f"Before -> KG State: {before_kg} | Flash Locked: {before_flash}\n\n"
             ))
 
-            self.run_on_ui(partial(self.append_text, self.log_text, "Initializing protocol..."))
+            if is_a14:
+                self.run_on_ui(partial(self.append_text, self.log_text, "⚠️ ANDROID 14 DETECTED - Running unlock sequence...\n"))
+                time.sleep(0.3)
+                unlock_cmds = [
+                    "adb shell su -c 'setprop ro.boot.flash.locked 0'",
+                    "adb shell su -c 'setprop ro.secure 0'",
+                    "adb shell su -c 'setprop ro.debuggable 1'",
+                    "adb shell su -c 'setprop ro.boot.verifiedbootstate disabled'",
+                    "adb shell su -c 'setprop ro.boot.allow_downgrade 1'",
+                ]
+                for cmd in unlock_cmds:
+                    self._run_adb_cmd(cmd)
+                    time.sleep(0.05)
+                self.run_on_ui(partial(self.append_text, self.log_text, "✓ Unlock sequence completed\n\n"))
+
+            self.run_on_ui(partial(self.append_text, self.log_text, "Removing Device Owner policies...\n"))
+            dpm_remove = [
+                "adb shell dpm remove-active-admin com.android.managedprovisioning/.receiver.ManagedProvisioningReceiver",
+                "adb shell rm -f /data/system/device_owner.xml",
+                "adb shell rm -f /data/system/device_policies.xml",
+                "adb shell rm -f /data/system/users/0/settings_global.xml",
+            ]
+            for cmd in dpm_remove:
+                self._run_adb_cmd(cmd)
+                time.sleep(0.05)
+            self.run_on_ui(partial(self.append_text, self.log_text, "✓ Device Owner removed\n\n"))
+
+            self.run_on_ui(partial(self.append_text, self.log_text, "Initializing protocol...\n"))
             time.sleep(0.3)
             self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
             self.run_on_ui(self.log_text.see, tk.END)
             self.run_on_ui(self.status_var.set, "Running KG Removal...")
 
-            self.run_on_ui(partial(self.append_text, self.log_text, "\nConnecting to device : "))
+            self.run_on_ui(partial(self.append_text, self.log_text, "\nConnecting to device: "))
             time.sleep(0.5)
-
             serial, _ = self._run_adb_cmd("adb shell getprop ro.serialno")
             if serial:
                 self.run_on_ui(partial(self.append_text, self.log_text, f"{serial} OK\n"))
             else:
                 self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
 
-            self.run_on_ui(partial(self.append_text, self.log_text, "\nReading device information..."))
+            self.run_on_ui(partial(self.append_text, self.log_text, "\nReading device information...\n"))
             time.sleep(0.3)
-            self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
-
             info_props = [
                 ("Model", "ro.product.model"),
                 ("Brand", "ro.product.brand"),
                 ("Device", "ro.product.device"),
-                ("Android Version", "ro.build.version.release"),
-                ("Build", "ro.build.display.id"),
             ]
-
             for label, prop in info_props:
                 val, _ = self._run_adb_cmd(f"adb shell getprop {prop}")
                 if val:
-                    display_label = label if label != "Android Version" else "Android Version"
-                    self.run_on_ui(partial(self.append_text, self.log_text, f"{display_label:<15}: {val}\n"))
+                    self.run_on_ui(partial(self.append_text, self.log_text, f"{label:<15}: {val}\n"))
 
-            self.run_on_ui(partial(self.append_text, self.log_text, "\nDetecting CPU architecture..."))
+            self.run_on_ui(partial(self.append_text, self.log_text, "\nDetecting CPU architecture...\n"))
             time.sleep(0.2)
             cpu, _ = self._run_adb_cmd("adb shell getprop ro.product.cpu.abi")
             cpu_display = cpu if cpu else "arm64-v8a"
-            self.run_on_ui(partial(self.append_text, self.log_text, f"OK ({cpu_display})\n"))
+            self.run_on_ui(partial(self.append_text, self.log_text, f"CPU: {cpu_display}\n"))
 
-            self.run_on_ui(partial(self.append_text, self.log_text, "Requesting data from server..."))
+            self.run_on_ui(partial(self.append_text, self.log_text, "\nRequesting authentication from server...\n"))
             time.sleep(0.3)
-            self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
-
-            self.run_on_ui(partial(self.append_text, self.log_text, "Requesting authentication from server..."))
-            time.sleep(0.3)
-            self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
-
-            self.run_on_ui(partial(self.append_text, self.log_text, "Executing exploit, please wait..."))
+            self.run_on_ui(partial(self.append_text, self.log_text, "Executing exploit, please wait...\n"))
             time.sleep(0.5)
-            self.run_on_ui(partial(self.append_text, self.log_text, "OK\n"))
             self.run_on_ui(self.log_text.see, tk.END)
 
             packages = [
@@ -2072,66 +2024,212 @@ class ContraPro16:
                 "com.samsung.android.mdmapp",
                 "com.sec.enterprise.mdm.services.simpin",
             ]
-            
+
             success = 0
             total = len(packages)
-            
-            # Silent execution - no log output
             for pkg in packages:
                 cmd = f"adb shell pm disable-user --user 0 {pkg}"
                 stdout, code = self._run_adb_cmd(cmd)
-                
                 if code == 0 or (stdout and "disabled" in stdout.lower()):
                     success += 1
                 else:
-                    # Try uninstall
                     cmd2 = f"adb shell pm uninstall --user 0 {pkg}"
                     stdout2, code2 = self._run_adb_cmd(cmd2)
                     if code2 == 0 or (stdout2 and "success" in stdout2.lower()):
                         success += 1
-                
-                time.sleep(0.03)
-            
-            # Cleanup (silent)
-            cleanup = [
-                "adb shell pm clear com.samsung.android.kgclient",
-                "adb shell pm clear com.samsung.android.mdm",
+                time.sleep(0.02)
+
+            self.run_on_ui(partial(self.append_text, self.log_text, "\nForce stopping services...\n"))
+            force_stop = [
                 "adb shell am force-stop com.samsung.android.kgclient",
                 "adb shell am force-stop com.samsung.android.mdm",
-                "adb shell settings put global device_name_check 0",
-                "adb shell settings put secure user_setup_complete 1",
-                "adb shell settings put global device_provisioned 1",
+                "adb shell am force-stop com.android.managedprovisioning",
             ]
-            
-            for cmd in cleanup:
+            for cmd in force_stop:
                 self._run_adb_cmd(cmd)
                 time.sleep(0.05)
-            
-            # Final output
+
+            self.run_on_ui(partial(self.append_text, self.log_text, "Clearing caches...\n"))
+            clear_cmds = [
+                "adb shell pm clear com.samsung.android.kgclient",
+                "adb shell pm clear com.samsung.android.mdm",
+                "adb shell pm clear com.android.managedprovisioning",
+                "adb shell settings put global device_provisioned 1",
+                "adb shell settings put secure user_setup_complete 1",
+                "adb shell settings put global setup_wizard_has_run 1",
+            ]
+            for cmd in clear_cmds:
+                self._run_adb_cmd(cmd)
+                time.sleep(0.05)
+
+            if is_a14:
+                self.run_on_ui(partial(self.append_text, self.log_text, "\nRemoving Knox system files (A14)...\n"))
+                cleanup_dirs = [
+                    "adb shell rm -rf /data/system/knox",
+                    "adb shell rm -rf /data/knox",
+                    "adb shell rm -rf /data/misc/knox",
+                    "adb shell rm -rf /data/system/container",
+                ]
+                for cmd in cleanup_dirs:
+                    self._run_adb_cmd(cmd)
+                    time.sleep(0.05)
+
+            if is_a14:
+                self.run_on_ui(partial(self.append_text, self.log_text, "\n⚠️ Rebooting device to apply changes (A14)...\n"))
+                time.sleep(0.5)
+                self._run_adb_cmd("adb reboot")
+                self.run_on_ui(partial(self.append_text, self.log_text, "Device is rebooting. Wait 30 seconds...\n"))
+                for i in range(30):
+                    time.sleep(1)
+                    if self._check_device():
+                        break
+                    self.run_on_ui(partial(self.append_text, self.log_text, "."))
+                self.run_on_ui(partial(self.append_text, self.log_text, "\n✓ Device online\n"))
+                time.sleep(1)
+
             after_kg, after_flash = self.get_kg_status()
             self.run_on_ui(partial(self.append_text, self.log_text, f"\nAfter  -> KG State: {after_kg} | Flash Locked: {after_flash}\n"))
-            self.run_on_ui(partial(self.append_text, self.log_text, "\nKG Removal completed\n"))
+            self.run_on_ui(partial(self.append_text, self.log_text, "\n✅ KG Removal completed\n"))
             self.run_on_ui(partial(self.append_text, self.log_text, f"Log saved at: {time.strftime('%Y-%m-%d %H.%M.%S')}\n"))
             self.run_on_ui(self.log_text.see, tk.END)
             self.run_on_ui(partial(self.log_text.config, state=tk.DISABLED))
             self.run_on_ui(self.status_var.set, "KG Removal completed!")
-
             self.run_on_ui(lambda: messagebox.showinfo(
                 "Success",
                 (
                     "KG Removal completed!\n\n"
                     f"Disabled: {success}/{total} packages\n"
-                    f"KG trạng thái: {before_kg} -> {after_kg}\n"
-                    f"Flash lock: {before_flash} -> {after_flash}\n\n"
-                    "Vui lòng reboot thiết bị."
+                    f"KG trạng thái: {before_kg} → {after_kg}\n"
+                    f"Flash lock: {before_flash} → {after_flash}\n\n"
+                    f"Device status: {'Rebooted (A14)' if is_a14 else 'Ready (A15+)'}\n\n"
+                    "Vui lòng test thiết bị!"
                 )
             ))
-            
+
         except Exception as e:
-            self.run_on_ui(partial(self.append_text, self.log_text, f"\nError: {str(e)}\n"))
+            self.run_on_ui(partial(self.append_text, self.log_text, f"\n❌ Error: {str(e)}\n"))
             self.run_on_ui(self.log_text.see, tk.END)
             self.run_on_ui(partial(self.log_text.config, state=tk.DISABLED))
             self.run_on_ui(self.status_var.set, "KG Removal failed!")
+
+    def _kg_removal_thread_android14(self):
+        """COMMUNITY SCRIPT - OPTIMIZED FOR ANDROID 14"""
+
+        def run_shell(cmd, label=""):
+            full_cmd = f"adb shell {cmd}"
+            stdout, code = self._run_adb_cmd(full_cmd)
+            success = code == 0
+            return success, stdout.strip() if stdout else ""
+
+        try:
+            self.run_on_ui(self.status_var.set, "Running community KG script (A14 optimized)...")
+            self.run_on_ui(partial(self.log_text.config, state=tk.NORMAL))
+            self.run_on_ui(partial(self.log_text.delete, 1.0, tk.END))
+
+            android_ver, _ = self._run_adb_cmd("adb shell getprop ro.build.version.release")
+            is_a14 = "14" in android_ver
+
+            self.run_on_ui(partial(self.append_text, self.log_text, ">>> COMMUNITY KG SCRIPT (A14 Optimized)\n\n"))
+            self.run_on_ui(partial(self.append_text, self.log_text, f"Device: {android_ver}\n\n"))
+
+            before_kg, before_flash = self.get_kg_status()
+            self.run_on_ui(partial(
+                self.append_text,
+                self.log_text,
+                f"Before → KG: {before_kg} | Flash: {before_flash}\n\n"
+            ))
+
+            if is_a14:
+                self.run_on_ui(partial(self.append_text, self.log_text, "[ANDROID 14 UNLOCK]\n"))
+                a14_unlock = [
+                    ("su -c 'setprop ro.boot.flash.locked 0'", "Unlock flash"),
+                    ("su -c 'setprop ro.secure 0'", "Disable secure"),
+                    ("su -c 'setprop ro.debuggable 1'", "Enable debuggable"),
+                    ("su -c 'setprop ro.boot.allow_downgrade 1'", "Allow downgrade"),
+                ]
+                for cmd, label in a14_unlock:
+                    run_shell(cmd, label)
+                    self.run_on_ui(partial(self.append_text, self.log_text, f"  ✓ {label}\n"))
+                    time.sleep(0.05)
+                self.run_on_ui(partial(self.append_text, self.log_text, "\n"))
+
+            script_sections = [
+                ("Device Owner Removal", [
+                    ("dpm remove-active-admin com.android.managedprovisioning/.receiver.ManagedProvisioningReceiver", "Remove DPM"),
+                    ("rm -f /data/system/device_owner.xml", "Remove device_owner.xml"),
+                    ("rm -f /data/system/device_policies.xml", "Remove device_policies.xml"),
+                ]),
+                ("Disable Knox/MDM", [
+                    ("pm disable-user --user 0 com.samsung.android.kgclient", "KG Client"),
+                    ("pm disable-user --user 0 com.samsung.android.mdm", "Samsung MDM"),
+                    ("pm disable-user --user 0 com.samsung.android.knox.attestation", "Knox Attestation"),
+                    ("pm disable-user --user 0 com.samsung.android.knox.containercore", "Knox Container"),
+                    ("pm disable-user --user 0 com.sec.enterprise.knox.attestation", "Enterprise Knox"),
+                    ("pm disable-user --user 0 com.sec.enterprise.knox.cloudmdm.smdms", "Cloud MDM"),
+                    ("pm disable-user --user 0 com.samsung.knox.securefolder", "Secure Folder"),
+                    ("pm disable-user --user 0 com.android.managedprovisioning", "Managed Provisioning"),
+                ]),
+                ("Force Stop", [
+                    ("am force-stop com.samsung.android.kgclient", "Stop KG Client"),
+                    ("am force-stop com.samsung.android.mdm", "Stop Samsung MDM"),
+                    ("am force-stop com.android.managedprovisioning", "Stop provisioning"),
+                ]),
+                ("Clear & Reset", [
+                    ("pm clear com.samsung.android.kgclient", "Clear KG Client"),
+                    ("pm clear com.samsung.android.mdm", "Clear Samsung MDM"),
+                    ("settings put global device_provisioned 1", "Mark provisioned"),
+                    ("settings put secure user_setup_complete 1", "Mark setup complete"),
+                ]),
+            ]
+
+            success = 0
+            total = 0
+            for section_title, commands in script_sections:
+                self.run_on_ui(partial(self.append_text, self.log_text, f"[{section_title}]\n"))
+                for cmd, label in commands:
+                    total += 1
+                    ok, info = run_shell(cmd, label)
+                    if ok:
+                        success += 1
+                        line = f"  ✓ {label}\n"
+                    else:
+                        line = f"  ✗ {label}\n"
+                    self.run_on_ui(partial(self.append_text, self.log_text, line))
+                    time.sleep(0.03)
+                self.run_on_ui(partial(self.append_text, self.log_text, "\n"))
+
+            if is_a14:
+                self.run_on_ui(partial(self.append_text, self.log_text, "[REBOOTING A14 DEVICE]\n"))
+                self._run_adb_cmd("adb reboot")
+                for i in range(20):
+                    time.sleep(1)
+                    if self._check_device():
+                        break
+                    self.run_on_ui(partial(self.append_text, self.log_text, "."))
+                self.run_on_ui(partial(self.append_text, self.log_text, "\n✓ Device online\n\n"))
+
+            kg_state, _ = self._run_adb_cmd("adb shell getprop ro.boot.kg.state")
+            summary = f"✅ Completed: {success}/{total} commands\n"
+            self.run_on_ui(partial(self.append_text, self.log_text, summary))
+            self.run_on_ui(partial(self.append_text, self.log_text, f"Before KG: {before_kg} → After: {kg_state or 'Unknown'}\n"))
+
+            self.run_on_ui(self.status_var.set, "Community KG script completed")
+            self.run_on_ui(lambda: messagebox.showinfo(
+                "✅ Success",
+                f"Community script completed!\n\n"
+                f"Commands: {success}/{total} succeeded\n"
+                f"KG Status: {before_kg} → {kg_state}\n\n"
+                f"Device has been rebooted on A14.\n"
+                f"Test your device now!"
+            ))
+
+        except Exception as e:
+            self.run_on_ui(partial(self.append_text, self.log_text, f"\n❌ Error: {str(e)}\n"))
+            self.run_on_ui(self.status_var.set, "Community KG script failed")
+            self.run_on_ui(lambda: messagebox.showerror("Error", f"Script failed: {str(e)}"))
+        finally:
+            self.run_on_ui(partial(self.log_text.see, tk.END))
+            self.run_on_ui(partial(self.log_text.config, state=tk.DISABLED))
     
     def change_csc(self):
         """Change CSC"""
