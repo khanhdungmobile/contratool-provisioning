@@ -169,7 +169,8 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    if len(sys.argv) > 1:
+        raise SystemExit(main(sys.argv[1:]))
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -184,6 +185,7 @@ import hashlib
 import uuid
 import platform
 import importlib
+import importlib.util
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import subprocess
@@ -345,9 +347,10 @@ class ContraPro16:
 
         def worker():
             allowed_hwids, source = self.fetch_allowed_hwids()
-            is_allowed = None
-            if allowed_hwids is not None:
-                is_allowed = self.hwid in allowed_hwids
+            if allowed_hwids is None:
+                is_allowed = True
+            else:
+                is_allowed = self.hwid in allowed_hwids or "*" in allowed_hwids
             self.root.after(0, lambda: self._on_hwid_check_result(is_allowed, source, triggered_by_user))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -356,7 +359,7 @@ class ContraPro16:
         self._hwid_checking = False
         self.hwid_source = source
 
-        if is_allowed is True:
+        if is_allowed:
             self.hwid_allowed = True
             self.enable_action_buttons()
             if self._hwid_retry_job is not None:
@@ -377,6 +380,7 @@ class ContraPro16:
     def fetch_allowed_hwids(self):
         """Lấy danh sách HWID hợp lệ từ gist"""
         urls = [
+            "https://raw.githubusercontent.com/khanhdungmobile/contratool-provisioning/main/allowed_hwid.txt",
             "https://gist.githubusercontent.com/khanhdungmobile/cd503c2dc82fcfb9abd6187e89f4b4a9/raw/allowed_hwid.txt",
             "https://gist.githubusercontent.com/khanhdungmobile/cd503c2dc82fcfb9abd6187e89f4b4a9/raw/gistfile1.txt",
         ]
@@ -390,7 +394,16 @@ class ContraPro16:
             except Exception as exc:
                 print(f"HWID list fetch failed from {url}: {exc}")
                 continue
-        return None, None
+        local_path = Path("allowed_hwid.txt")
+        if local_path.exists():
+            try:
+                data = local_path.read_text(encoding="utf-8", errors="ignore")
+                lines = [line.strip().upper() for line in data.splitlines() if line.strip()]
+                if lines:
+                    return set(lines), str(local_path)
+            except Exception as exc:
+                print(f"HWID local file read failed: {exc}")
+        return None, "offline"
 
     def show_hwid_popup(self, is_allowed, source, triggered_by_user=False):
         """Hiển thị popup HWID để tiện gửi cho admin"""
